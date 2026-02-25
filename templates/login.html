@@ -148,18 +148,17 @@
                     {% endif %}
                 </div>
 
-                <!-- Password Reset -->
-                {% if show_pwreset %}
-                <div class="text-center pt-1">
-                    <form method="POST" action="{{ url_for('password_reset') }}" class="inline">
-                        <button type="submit"
-                                class="text-sm text-pve-400 hover:text-pve-300 transition-colors font-medium">
-                            Reset Password
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
             </form>
+
+            <!-- Password Reset (outside login form to avoid nesting) -->
+            {% if show_pwreset %}
+            <form method="POST" action="{{ url_for('password_reset') }}" class="text-center pt-3">
+                <button type="submit"
+                        class="text-sm text-pve-400 hover:text-pve-300 transition-colors font-medium">
+                    Reset Password
+                </button>
+            </form>
+            {% endif %}
         </div>
 
         <!-- Footer -->

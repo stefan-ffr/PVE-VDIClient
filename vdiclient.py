@@ -21,7 +21,7 @@ import webview
 
 from flask import (
     Flask, render_template, request, redirect,
-    url_for, session, jsonify, flash, send_file
+    url_for, jsonify, flash, send_file
 )
 import proxmoxer
 import requests
@@ -677,15 +677,25 @@ def main():
             print(f'Auto-authentication failed: {error}')
 
     # Start Flask in background thread
+    url = f'http://{args.host}:{args.port}'
     Thread(
         target=lambda: app.run(host=args.host, port=args.port, debug=False, threaded=True),
         daemon=True
     ).start()
 
+    # Wait for Flask to be ready before opening the window
+    import socket
+    for _ in range(50):
+        try:
+            with socket.create_connection((args.host, args.port), timeout=0.1):
+                break
+        except OSError:
+            sleep(0.1)
+
     # Launch native desktop window with pywebview
     window = webview.create_window(
         G.title,
-        f'http://{args.host}:{args.port}',
+        url,
         width=G.width or 900,
         height=G.height or 700
     )

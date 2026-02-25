@@ -1,4 +1,9 @@
 @echo off
+REM Download Tailwind CSS for offline use
+if not exist static\tailwind.js (
+    echo Downloading Tailwind CSS...
+    curl -L -o static\tailwind.js https://cdn.tailwindcss.com
+)
 pyinstaller --noconsole --noconfirm --hidden-import proxmoxer.backends --hidden-import proxmoxer.backends.https --hidden-import proxmoxer.backends.https.AuthenticationError --hidden-import proxmoxer.core --hidden-import proxmoxer.core.ResourceException --hidden-import subprocess.TimeoutExpired --hidden-import subprocess.CalledProcessError --hidden-import requests.exceptions --hidden-import requests.exceptions.ReadTimeout --hidden-import requests.exceptions.ConnectTimeout --hidden-import requests.exceptions.ConnectionError --hidden-import flask --hidden-import jinja2 --hidden-import webview --add-data "templates;templates" --add-data "static;static" --noupx -i vdiicon.ico vdiclient.py
 copy vdiclient.png dist\vdiclient
 copy vdiicon.ico dist\vdiclient
