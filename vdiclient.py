@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Proxmox VDI Client - Modern Web Interface
-A Flask-based web client for Proxmox VE Virtual Desktop Infrastructure.
+Proxmox VDI Client - Native Desktop Application
+A Flask + pywebview client for Proxmox VE Virtual Desktop Infrastructure.
 Compatible with PVE 7, 8, and 9.
 """
 
@@ -11,12 +11,13 @@ import json
 import random
 import subprocess
 import argparse
-import webbrowser
 import urllib3
 from configparser import ConfigParser
 from io import StringIO
 from time import sleep
 from threading import Thread
+
+import webview
 
 from flask import (
     Flask, render_template, request, redirect,
@@ -650,8 +651,6 @@ def main():
                         help='Web server port (default: 5000)')
     parser.add_argument('--host', default='127.0.0.1',
                         help='Web server bind address (default: 127.0.0.1)')
-    parser.add_argument('--no-browser', action='store_true',
-                        help='Do not auto-open browser on start')
     args = parser.parse_args()
 
     setcmd()
@@ -677,14 +676,20 @@ def main():
         else:
             print(f'Auto-authentication failed: {error}')
 
-    if not args.no_browser:
-        Thread(
-            target=lambda: (sleep(1.5), webbrowser.open(f'http://{args.host}:{args.port}')),
-            daemon=True
-        ).start()
+    # Start Flask in background thread
+    Thread(
+        target=lambda: app.run(host=args.host, port=args.port, debug=False, threaded=True),
+        daemon=True
+    ).start()
 
-    print(f'PVE VDI Client running at http://{args.host}:{args.port}')
-    app.run(host=args.host, port=args.port, debug=False, threaded=True)
+    # Launch native desktop window with pywebview
+    window = webview.create_window(
+        G.title,
+        f'http://{args.host}:{args.port}',
+        width=G.width or 900,
+        height=G.height or 700
+    )
+    webview.start()
     return 0
 
 
