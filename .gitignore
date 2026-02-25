@@ -5,4 +5,8 @@
 /dist/*.wxs
 /dist/*.wixpdb
 **/__pycache__
+*.pyc
 vdiclient.spec
+.env
+*.egg-info/
+instance/
