@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="backdrop-blur-xl bg-white/[0.05] border-b border-white/[0.08] sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                {% if has_logo %}
+                <img src="{{ url_for('serve_logo') }}" alt="Logo" class="h-8 w-auto">
+                {% else %}
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-pve-500 to-pve-700 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/>
+                    </svg>
+                </div>
+                {% endif %}
+                <h1 class="text-lg font-bold text-white">{{ title }}</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="hidden sm:inline text-sm text-slate-500">
+                    <span id="refresh-indicator" class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse-dot"></span>
+                    Live
+                </span>
+                {% if not kiosk %}
+                <a href="{{ url_for('logout') }}"
+                   class="px-4 py-1.5 bg-white/[0.06] hover:bg-white/[0.12] text-slate-300
+                          rounded-lg border border-white/[0.1] transition-all text-sm font-medium">
+                    Logout
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <p class="text-slate-400 text-sm">Select a desktop instance to connect to</p>
+            </div>
+            <span class="text-xs text-slate-600 font-medium">
+                {{ vm_count }} instance{{ 's' if vm_count != 1 }}
+            </span>
+        </div>
+
+        <!-- VM Grid -->
+        {% if vms %}
+        <div id="vm-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for vm in vms %}
+            <div class="vm-card backdrop-blur-xl bg-white/[0.05] rounded-xl border border-white/[0.1]
+                        p-5 transition-all duration-200 hover:bg-white/[0.08] hover:border-white/[0.18]
+                        hover:shadow-lg hover:shadow-black/10 animate-fade-in"
+                 data-vmid="{{ vm.vmid }}"
+                 style="animation-delay: {{ loop.index0 * 50 }}ms">
+
+                <!-- VM Header -->
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br
+                            {% if vm.state == 'running' %}from-emerald-500/20 to-emerald-600/20 border border-emerald-500/20
+                            {% elif vm.state == 'stopped' %}from-slate-500/20 to-slate-600/20 border border-slate-500/20
+                            {% else %}from-amber-500/20 to-amber-600/20 border border-amber-500/20{% endif %}
+                            flex items-center justify-center">
+                            <svg class="w-5 h-5
+                                {% if vm.state == 'running' %}text-emerald-400
+                                {% elif vm.state == 'stopped' %}text-slate-400
+                                {% else %}text-amber-400{% endif %}"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                      d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-base font-semibold text-white truncate">{{ vm.name }}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">ID {{ vm.vmid }} &middot; {{ vm.node }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div class="mb-4">
+                    <span class="vm-status inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+                        {% if vm.state == 'running' %}
+                            bg-emerald-500/15 text-emerald-400 border border-emerald-500/25
+                        {% elif vm.state == 'stopped' %}
+                            bg-red-500/10 text-red-400 border border-red-500/20
+                        {% else %}
+                            bg-amber-500/15 text-amber-400 border border-amber-500/25
+                        {% endif %}">
+                        <span class="vm-status-dot w-1.5 h-1.5 rounded-full
+                            {% if vm.state == 'running' %}bg-emerald-400 animate-pulse-dot
+                            {% elif vm.state == 'stopped' %}bg-red-400
+                            {% else %}bg-amber-400 animate-pulse-dot{% endif %}"></span>
+                        <span class="vm-status-text">{{ vm.state | capitalize }}</span>
+                    </span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-2">
+                    <button onclick="vmConnect({{ vm.vmid }}, this)" {{ 'disabled' if vm.disabled }}
+                            class="connect-btn flex-1 inline-flex items-center justify-center gap-2 px-4 py-2
+                                   bg-gradient-to-r from-pve-600 to-pve-500
+                                   hover:from-pve-500 hover:to-pve-400
+                                   text-white text-sm font-semibold rounded-lg transition-all
+                                   shadow-md shadow-pve-600/20 hover:shadow-pve-500/30
+                                   active:scale-[0.97]
+                                   disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none
+                                   disabled:active:scale-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>
+                        </svg>
+                        Connect
+                    </button>
+                    {% if show_reset %}
+                    <button onclick="vmReset({{ vm.vmid }}, this)"
+                            class="reset-btn px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400
+                                   text-sm font-medium rounded-lg border border-amber-500/20
+                                   hover:border-amber-500/30 transition-all active:scale-[0.97]"
+                            title="Reset VM">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/>
+                        </svg>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16">
+            <div class="mx-auto w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"/>
+                </svg>
+            </div>
+            <p class="text-slate-400 font-medium">No desktop instances found</p>
+            <p class="text-slate-600 text-sm mt-1.5">Please consult with your system administrator.</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let lastVMCount = {{ vm_count }};
+    let refreshInterval;
+
+    // Start auto-refresh
+    refreshInterval = setInterval(refreshVMs, 5000);
+
+    async function refreshVMs() {
+        try {
+            const res = await fetch('/api/vms');
+            if (res.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+            const vms = await res.json();
+
+            // If VM count changed, reload the page
+            if (vms.length !== lastVMCount) {
+                window.location.reload();
+                return;
+            }
+
+            // Update status for each VM
+            vms.forEach(vm => {
+                const card = document.querySelector(`[data-vmid="${vm.vmid}"]`);
+                if (!card) return;
+
+                const statusBadge = card.querySelector('.vm-status');
+                const statusDot = card.querySelector('.vm-status-dot');
+                const statusText = card.querySelector('.vm-status-text');
+                const connectBtn = card.querySelector('.connect-btn');
+                const icon = card.querySelector('.flex-shrink-0');
+
+                if (!statusBadge || !statusText) return;
+
+                const state = vm.state;
+                const displayState = state.charAt(0).toUpperCase() + state.slice(1);
+
+                // Update status text
+                statusText.textContent = displayState;
+
+                // Update status colors
+                statusBadge.className = statusBadge.className.replace(
+                    /bg-\w+-500\/\d+ text-\w+-\d+ border border-\w+-500\/\d+/g, ''
+                );
+
+                if (state === 'running') {
+                    statusBadge.className = 'vm-status inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25';
+                    statusDot.className = 'vm-status-dot w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot';
+                    if (icon) icon.className = 'flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border border-emerald-500/20 flex items-center justify-center';
+                    if (icon) icon.querySelector('svg').className.baseVal = 'w-5 h-5 text-emerald-400';
+                } else if (state === 'stopped') {
+                    statusBadge.className = 'vm-status inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20';
+                    statusDot.className = 'vm-status-dot w-1.5 h-1.5 rounded-full bg-red-400';
+                    if (icon) icon.className = 'flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-slate-500/20 to-slate-600/20 border border-slate-500/20 flex items-center justify-center';
+                    if (icon) icon.querySelector('svg').className.baseVal = 'w-5 h-5 text-slate-400';
+                } else {
+                    statusBadge.className = 'vm-status inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400 border border-amber-500/25';
+                    statusDot.className = 'vm-status-dot w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-dot';
+                    if (icon) icon.className = 'flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-500/20 flex items-center justify-center';
+                    if (icon) icon.querySelector('svg').className.baseVal = 'w-5 h-5 text-amber-400';
+                }
+
+                // Update connect button
+                if (connectBtn) {
+                    connectBtn.disabled = vm.disabled;
+                }
+            });
+        } catch (e) {
+            console.error('VM refresh failed:', e);
+        }
+    }
+
+    async function vmConnect(vmid, btn) {
+        if (btn) btn.disabled = true;
+        showToast('Connecting to VM...', 'info');
+
+        try {
+            const res = await fetch(`/vm/${vmid}/connect`, { method: 'POST' });
+            const result = await res.json();
+
+            if (result.success) {
+                showToast(result.message || 'Connected successfully!', 'success');
+            } else {
+                showToast(result.error || 'Connection failed', 'error');
+            }
+        } catch (e) {
+            showToast('Connection failed: ' + e.message, 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function vmReset(vmid, btn) {
+        if (!confirm('Are you sure you want to reset this VM? This will stop and restart it.')) return;
+
+        if (btn) btn.disabled = true;
+        showToast('Resetting VM...', 'info');
+
+        try {
+            const res = await fetch(`/vm/${vmid}/reset`, { method: 'POST' });
+            const result = await res.json();
+
+            if (result.success) {
+                showToast(result.message || 'VM reset successfully!', 'success');
+            } else {
+                showToast(result.error || 'Reset failed', 'error');
+            }
+        } catch (e) {
+            showToast('Reset failed: ' + e.message, 'error');
+        } finally {
+            if (btn) btn.disabled = false;
+            refreshVMs();
+        }
+    }
+
+    function showToast(message, type) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+
+        let colors;
+        let icon;
+        if (type === 'success') {
+            colors = 'bg-emerald-500/90 border-emerald-400/30';
+            icon = '<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+        } else if (type === 'error') {
+            colors = 'bg-red-500/90 border-red-400/30';
+            icon = '<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>';
+        } else {
+            colors = 'bg-pve-500/90 border-pve-400/30';
+            icon = '<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>';
+        }
+
+        toast.className = `${colors} text-white px-4 py-3 rounded-xl shadow-lg border backdrop-blur-sm
+                           animate-fade-in flex items-center gap-2.5 text-sm font-medium max-w-sm`;
+        toast.innerHTML = `${icon}<span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(16px)';
+            toast.style.transition = 'all 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+</script>
+{% endblock %}
